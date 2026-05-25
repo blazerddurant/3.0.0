@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>黄老爸的小日常</title>
+    <style>
+        :root {
+            --bg: #faf6f0;
+            --card-bg: #fffdf9;
+            --text: #3c3631;
+            --accent: #a67c52;
+            --accent-hover: #8c6643;
+            --border: #eee8e0;
+            --radius: 20px;
+            --shadow: 0 2px 10px rgba(139, 117, 97, 0.08);
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: var(--bg);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            padding: 16px 10px 50px;
+            color: var(--text);
+            line-height: 1.5;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* ============ Canvas 飘落花瓣 ============ */
+        #petalCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.55;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 22px 18px;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ============ 标题浮动动画 ============ */
+        @keyframes gentleFloat {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+        @keyframes gentleSwing {
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+            30% {
+                transform: rotate(6deg);
+            }
+            60% {
+                transform: rotate(-5deg);
+            }
+            80% {
+                transform: rotate(3deg);
+            }
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+        @keyframes softGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(166, 124, 82, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(166, 124, 82, 0.5);
+            }
+        }
+
+        h1 {
+            font-size: 1.7rem;
+            color: #785a48;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: gentleFloat 3.5s ease-in-out infinite;
+        }
+        h1 .title-icon {
+            display: inline-block;
+            animation: gentleSwing 5s ease-in-out infinite;
+        }
+        .streak-icon {
+            display: inline-block;
+            animation: pulse 1.6s ease-in-out infinite;
+        }
+        .sub {
+            color: #71655c;
+            font-size: 0.82rem;
+            margin-bottom: 8px;
+            border-left: 3px solid #cbbcb1;
+            padding-left: 12px;
+        }
+
+        button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all var(--transition);
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: scale(0.96);
+        }
+        .btn-sm {
+            font-size: 0.8rem;
+            padding: 8px 12px;
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--accent);
+            border: 1.5px solid var(--accent);
+        }
+        .btn-outline:hover {
+            background: #fdf6f0;
+        }
+        .btn-full {
+            width: 100%;
+        }
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .row>* {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2d7cc;
+            border-radius: 14px;
+            background: #fffdf9;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #b8977d;
+            box-shadow: 0 0 0 3px rgba(184, 151, 125, 0.12);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 75px;
+        }
+        label {
+            font-weight: 500;
+            font-size: 0.82rem;
+            color: #5a4e45;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* ============ 折叠面板 ============ */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #785a48;
+            padding: 8px 0;
+            user-select: none;
+            transition: var(--transition);
+        }
+        .collapsible-header:hover {
+            color: #8c6643;
+        }
+        .collapsible-header .arrow-icon {
+            transition: transform 0.3s ease;
+            font-size: 1.2rem;
+            display: inline-block;
+        }
+        .collapsible-header.open .arrow-icon {
+            transform: rotate(90deg);
+        }
+        .collapsible-body {
+            display: none;
+            margin-top: 8px;
+            animation: fadeSlideIn 0.35s ease;
+        }
+        .collapsible-body.open {
+            display: block;
+        }
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ============ 内核钥匙 ============ */
+        .keys-section {
+            background: #fdfaf5;
+            border-radius: 16px;
+            padding: 12px 14px;
+            margin-top: 10px;
+            border: 1.5px dashed #d4c5b3;
+            transition: var(--transition);
+        }
+        .keys-section:hover {
+            border-color: #c4b090;
+        }
+        .key-group {
+            background: #fffdf9;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid #ece3d8;
+        }
+        .key-group:last-child {
+            margin-bottom: 0;
+        }
+        .key-img-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .key-img-preview img {
+            width: 55px;
+            height: 55px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #e2d7cc;
+            transition: var(--transition);
+        }
+        .key-img-preview img:hover {
+            border-color: var(--accent);
+            transform: scale(1.06);
+        }
+        .img-wrap {
+            position: relative;
+            display: inline-block;
+        }
+        .img-wrap .img-del {
+            position: absolute;
+            top: -7px;
+            right: -7px;
+            background: #c0392b;
+            color: #fff;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            line-height: 1;
+            z-index: 2;
+        }
+
+        /* ============ 标签 ============ */
+        .tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .tag {
+            background: #e9e0d8;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: var(--transition);
+        }
+        .tag .remove-tag {
+            cursor: pointer;
+            font-weight: bold;
+            color: #8c6643;
+            font-size: 0.8rem;
+        }
+        .tag .remove-tag:hover {
+            color: #c0392b;
+        }
+
+        /* ============ 每日一言 ============ */
+        .daily-quote {
+            background: #fdf8f2;
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin: 10px 0;
+            font-style: italic;
+            color: #5a4e45;
+            border-left: 4px solid #cbbcb1;
+            animation: fadeSlideIn 0.5s ease;
+        }
+
+        /* ============ 心情按钮 ============ */
+        .mood-btn {
+            background: #f7f2ec;
+            border: 2px solid transparent;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+        .mood-btn:hover {
+            background: #f0e5d8;
+            transform: scale(1.12);
+        }
+        .mood-btn.selected {
+            border-color: var(--accent);
+            background: #fdf3e7;
+            box-shadow: 0 0 0 4px rgba(166, 124, 82, 0.15);
+            transform: scale(1.08);
+        }
+
+        /* ============ 统计面板 ============ */
+        .stat-panel {
+            background: #fdfaf6;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #e8dfd5;
+            animation: fadeSlideIn 0.35s ease;
+        }
+        .stat-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+            margin: 10px 0;
+        }
+        .stat-table th,
+        .stat-table td {
+            padding: 7px 5px;
+            text-align: center;
+            border-bottom: 1px solid #e8dfd5;
+        }
+        .stat-table th {
+            background: #f5ede4;
+            font-weight: 600;
+            color: #4b3b31;
+            border-radius: 6px 6px 0 0;
+            position: sticky;
+            top: 0;
+            font-size: 0.7rem;
+        }
+        .stat-chip {
+            background: #f5ede4;
+            padding: 8px 12px;
+            border-radius: 12px;
+            text-align: center;
+            flex: 1;
+            min-width: 60px;
+        }
+        .stat-chip .val {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #4b3b31;
+        }
+        .stat-chip .lbl {
+            font-size: 0.65rem;
+            color: #8a7b6e;
+        }
+
+        /* ============ 历史记录 ============ */
+        .record-collapsed {
+            background: #f7f2ec;
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border-left: 4px solid var(--accent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            transition: all var(--transition);
+            user-select: none;
+        }
+        .record-collapsed:hover {
+            background: #f0e9e0;
+            border-left-color: #8c6643;
+        }
+        .record-collapsed .arrow {
+            font-size: 1.2rem;
+            color: #a08c7a;
+            transition: transform var(--transition);
+            min-width: 24px;
+            text-align: center;
+        }
+        .record-collapsed.expanded .arrow {
+            transform: rotate(180deg);
+        }
+        .record-detail {
+            display: none;
+            background: #fdfaf6;
+            border-radius: 0 0 14px 14px;
+            padding: 16px;
+            margin-top: -6px;
+            margin-bottom: 10px;
+            border: 1px solid #e8dfd5;
+            border-top: none;
+            animation: fadeSlideIn 0.3s ease;
+        }
+        .record-detail.open {
+            display: block;
+        }
+        .empty-msg {
+            text-align: center;
+            color: #948477;
+            padding: 28px 18px;
+            background: #f3ede6;
+            border-radius: 16px;
+            font-size: 0.9rem;
+        }
+        .badge {
+            font-size: 0.68rem;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-weight: 500;
+            background: #e9e0d8;
+            color: #785a48;
+            white-space: nowrap;
+        }
+        .badge.mood-badge {
+            background: #fdf3e7;
+            font-size: 0.9rem;
+            padding: 2px 7px;
+        }
+
+        /* ============ 睡眠图表条 ============ */
+        .sleep-chart-bar {
+            height: 20px;
+            background: #c8dcc8;
+            border-radius: 4px;
+            margin: 2px 0;
+            transition: width 0.4s ease;
+            display: flex;
+            align-items: center;
+            padding-left: 4px;
+            font-size: 0.65rem;
+            color: #2d5a2d;
+            min-width: 22px;
+        }
+
+        /* ============ 页脚 ============ */
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #b8a89b;
+            margin-top: 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ============ 响应式 ============ */
+        @media (max-width: 480px) {
+            .card {
+                padding: 16px 10px;
+                border-radius: 16px;
+            }
+            h1 {
+                font-size: 1.4rem;
+            }
+            .key-img-preview img {
+                width: 44px;
+                height: 44px;
+            }
+            .mood-btn {
+                width: 34px;
+                height: 34px;
+                font-size: 1.1rem;
+            }
+            .stat-table {
+                font-size: 0.68rem;
+            }
+            .stat-table th,
+            .stat-table td {
+                padding: 4px 2px;
+            }
+            .record-collapsed .summary .preview {
+                max-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============ 飘落花瓣 Canvas ============ -->
+    <canvas id="petalCanvas"></canvas>
+
+    <div class="container">
+        <!-- 顶部卡片 -->
+        <div class="card" id="topCard">
+            <h1><span class="title-icon">📔</span> 小日常</h1>
+            <div class="sub">日记 · 想法碎片 · 睡眠跟踪 · 内核的钥匙</div>
+
+            <!-- 连续打卡 & 每日一言 -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                <div style="font-weight:500;font-size:0.85rem;color:#785a48;">
+                    <span class="streak-icon">🔥</span> 连续记录 <span id="streakNum">0</span> 天
+                </div>
+                <button class="btn-sm" id="randomQuoteBtn" style="background:#c49a6c;">🌟 每日一言</button>
+            </div>
+            <div class="daily-quote" id="dailyQuote" style="display:none;"></div>
+
+            <!-- 按钮行 -->
+            <div class="btn-row" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                <button class="btn-sm" id="statBtn">📊 睡眠统计</button>
+                <button class="btn-sm" id="exportBtn">💾 导出TXT</button>
+                <button class="btn-sm" id="exportJsonBtn">📋 JSON备份</button>
+                <button class="btn-sm" id="importJsonBtn">📥 恢复</button>
+                <button class="btn-sm" id="randomReviewBtn">🎲 随机回顾</button>
+                <input type="file" id="importJsonInput" accept=".json" style="display:none;">
+            </div>
+
+            <!-- 睡眠统计面板 -->
+            <div id="statPanel" style="display:none;" class="stat-panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <h3 style="font-size:1.05rem;font-weight:500;color:#5a4e45;">📊 睡眠统计</h3>
+                    <button class="btn-sm" id="closeStatPanel">✕ 收起</button>
+                </div>
+                <div id="statTableContainer"></div>
+                <div id="statCalendarContainer" style="display:none;"></div>
+                <div id="sleepChartContainer" style="margin-top:10px;"></div>
+                <div id="statSummaryChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
+                <div id="moodStatsContainer" style="margin-top:8px;"></div>
+                <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+                    <button class="btn-sm" id="showCalendarView">📅 日历视图</button>
+                    <button class="btn-sm" id="showTableView">📋 表格视图</button>
+                    <button class="btn-sm" id="showWeeklySummaryBtn">📝 周报摘要</button>
+                </div>
+                <div id="weeklySummaryContainer" style="margin-top:10px;"></div>
+            </div>
+
+            <!-- 表单 -->
+            <div class="row">
+                <div style="flex:2;min-width:110px;"><label>📅 日期</label><input type="date" id="recordDate"></div>
+                <div style="flex:1;min-width:70px;"><label>😴 睡眠(h)</label><input type="number" id="sleepHours" step="0.5" placeholder="7.5" min="0" max="24"></div>
+            </div>
+            <div style="margin-bottom:8px;">
+                <span style="font-size:0.82rem;font-weight:500;color:#5a4e45;">😊 今日心情：</span>
+                <div id="moodSelector" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;"></div>
+            </div>
+            <label>📝 日记 / 今日记录</label>
+            <textarea id="diaryText" placeholder="今天发生了什么重要的事？心情如何？"></textarea>
+            <label>💭 想法 / 灵感 / 碎碎念</label>
+            <textarea id="thoughtText" placeholder="任何想记下来的念头、感悟、计划..."></textarea>
+
+            <!-- 标签 -->
+            <div style="margin-top:8px;">
+                <label>🏷️ 标签 (逗号分隔添加)</label>
+                <div style="display:flex;gap:6px;">
+                    <input type="text" id="tagInput" placeholder="工作, 学习, 健康...">
+                    <button id="addTagBtn" style="background:#8b9daa;font-size:0.8rem;">添加</button>
+                </div>
+                <div class="tag-container" id="tagContainer"></div>
+            </div>
+
+            <!-- 内核的钥匙（折叠） -->
+            <div class="keys-section" style="margin-top:12px;">
+                <div class="collapsible-header" id="keysHeader">
+                    🗝️ 内核的钥匙 <span class="arrow-icon">▶</span>
+                </div>
+                <div class="collapsible-body" id="keysBody">
+                    <p style="font-size:0.7rem;color:#a08c7a;margin-bottom:8px;">每天记录四组「三件事」，稳固内核，日日精进。每组可上传一张图片。</p>
+                    <div id="keysDynamicContainer"></div>
+                </div>
+            </div>
+
+            <button id="saveBtn" class="btn-full" style="margin-top:12px;">✨ 保存今日记录</button>
+            <button id="clearFormBtn" class="btn-outline btn-full" style="margin-top:6px;">🔄 清空表单</button>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="card">
+            <h2 style="font-size:1.25rem;font-weight:500;color:#604c3e;">📂 历史记录 <span style="font-size:0.7rem;color:#a08c7a;font-weight:400;">（点击展开详情）</span></h2>
+            <div style="position:relative; margin-bottom:12px;">
+                <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#b8a89b; pointer-events:none;">🔍</span>
+                <input type="text" id="searchInput" placeholder="搜索日记、想法、标签..." style="padding-left:34px; border-radius:25px;">
+            </div>
+            <div id="recordsList"><div class="empty-msg">✨ 还没有记录，写第一篇日记吧～</div></div>
+            <div id="noResultMsg" style="display:none; text-align:center; color:#a08c7a; padding:20px;">🔍 没有找到匹配的记录</div>
+        </div>
+        <footer>数据保存在你的浏览器中 · 安心记录 · 每次保存后会提醒你记账哦</footer>
+    </div>
+
+    <script>
+        (function() {
+            const STORAGE_KEY = "daily_journal_v6";
+            const QUOTES = [
+                "每一天都是一份礼物。", "行动是治愈恐惧的良药。", "你比想象中更强大。",
+                "种一棵树最好的时间是十年前，其次是现在。", "慢慢来，比较快。",
+                "生活不是等待风暴过去，而是学会在雨中起舞。", "感恩每一次呼吸。",
+                "你所关注之处，必将生长。", "微小的进步，日积月累就是奇迹。",
+                "今天的努力，是明天的伏笔。"
+            ];
+            const KEY_GROUPS = ['gratitude', 'learning', 'work', 'life'];
+            const GROUP_LABELS = { gratitude: '🙏 感恩三件事', learning: '📚 学习三件事', work: '💼 工作三件事',
+            life: '🏡 生活三件事' };
+            let selectedMood = null;
+            let currentTags = [];
+
+            // ============ 数据操作 ============
+            function loadEntries() { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) :
+                []; }
+
+            function saveEntries(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+
+            function escapeHtml(s) { if (!s) return "";
+                return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
+                        "'": '&#039;' })[m]); }
+
+            function formatDate(d) { const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0'); return `${y}-${m}-${day}`; }
+
+            // ============ 连续打卡 ============
+            function updateStreak() {
+                const entries = loadEntries();
+                if (!entries.length) { document.getElementById('streakNum').textContent = '0'; return; }
+                const dates = new Set(entries.map(e => e.date));
+                let streak = 0,
+                    d = new Date();
+                const today = formatDate(d);
+                if (!dates.has(today)) d.setDate(d.getDate() - 1);
+                while (true) {
+                    const ds = formatDate(d);
+                    if (dates.has(ds)) { streak++;
+                        d.setDate(d.getDate() - 1); } else break;
+                }
+                document.getElementById('streakNum').textContent = streak;
+            }
+
+            // ============ 心情 ============
+            function initMood() {
+                const moods = ['😊', '😄', '🥰', '😐', '😢', '😤', '😴', '🤩'];
+                const container = document.getElementById('moodSelector');
+                container.innerHTML = moods.map(m =>
+                    `<button class="mood-btn" data-mood="${m}" title="${m}">${m}</button>`).join('');
+                container.querySelectorAll('.mood-btn').forEach(b => {
+                    b.addEventListener('click', function() {
+                        container.querySelectorAll('.mood-btn').forEach(x => x.classList.remove(
+                            'selected'));
+                        this.classList.add('selected');
+                        selectedMood = this.dataset.mood;
+                    });
+                });
+            }
+
+            function setMoodUI(mood) {
+                const btns = document.querySelectorAll('.mood-btn');
+                btns.forEach(b => b.classList.remove('selected'));
+                if (mood) {
+                    const target = document.querySelector(`.mood-btn[data-mood="${mood}"]`);
+                    if (target) target.classList.add('selected');
+                    selectedMood = mood;
+                } else selectedMood = null;
+            }
+
+            // ============ 标签 ============
+            function renderTags() {
+                const container = document.getElementById('tagContainer');
+                container.innerHTML = currentTags.map((t, i) =>
+                    `<span class="tag">${escapeHtml(t)} <span class="remove-tag" data-index="${i}">✕</span></span>`
+                    ).join('');
+                container.querySelectorAll('.remove-tag').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        currentTags.splice(parseInt(this.dataset.index), 1);
+                        renderTags();
+                    });
+                });
+            }
+            document.getElementById('addTagBtn').addEventListener('click', () => {
+                const input = document.getElementById('tagInput');
+                const val = input.value.trim();
+                if (val && !currentTags.includes(val)) { currentTags.push(val);
+                    renderTags();
+                    input.value = ''; }
+            });
+
+            // ============ 内核钥匙动态生成 ============
+            function buildKeysHTML() {
+                const container = document.getElementById('keysDynamicContainer');
+                let html = '';
+                KEY_GROUPS.forEach(group => {
+                    html +=
+                        `<div class="key-group"><div class="key-label" style="font-weight:600;font-size:0.82rem;color:#604c3e;">${GROUP_LABELS[group]}</div>`;
+                    for (let i = 0; i < 3; i++) html +=
+                        `<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;"><span style="min-width:16px;font-size:0.7rem;color:#a08c7a;">${i+1}</span><input type="text" class="key-input" data-group="${group}" data-index="${i}" placeholder="..."></div>`;
+                    html +=
+                        `<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><button class="btn-img upload-key-img" data-group="${group}" style="background:#8b9daa;font-size:0.72rem;padding:5px 10px;border-radius:20px;">📷 上传图片</button><input type="file" class="key-img-input-hidden" data-group="${group}" accept="image/*" style="display:none;"><div class="key-img-preview" id="imgPreview_${group}"></div></div></div>`;
+                });
+                container.innerHTML = html;
+                container.querySelectorAll('.upload-key-img').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        container.querySelector(
+                            `.key-img-input-hidden[data-group="${this.dataset.group}"]`).click();
+                    });
+                });
+                container.querySelectorAll('.key-img-input-hidden').forEach(inp => {
+                    inp.addEventListener('change', async function() {
+                        const group = this.dataset.group;
+                        const file = this.files[0];
+                        if (!file || !file.type.startsWith('image/')) return;
+                        if (file.size > 10 * 1024 * 1024) return alert('图片不能超过10MB');
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const img = new Image();
+                            img.onload = function() {
+                                const canvas = document.createElement('canvas');
+                                let w = img.width,
+                                    h = img.height;
+                                if (w > 400 || h > 400) { const r = Math.min(400 / w,
+                                    400 / h);
+                                    w = Math.round(w * r);
+                                    h = Math.round(h * r); }
+                                canvas.width = w;
+                                canvas.height = h;
+                                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                                document.getElementById(`imgPreview_${group}`).innerHTML =
+                                    `<div class="img-wrap"><img src="${dataUrl}" data-full-src="${dataUrl}" alt="预览"><button class="img-del">✕</button></div>`;
+                                const delBtn = document.querySelector(
+                                    `#imgPreview_${group} .img-del`);
+                                if (delBtn) delBtn.addEventListener('click', () => { document
+                                        .getElementById(`imgPreview_${group}`).innerHTML =
+                                        ''; });
+                            };
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                        this.value = '';
+                    });
+                });
+            }
+
+            function collectKeysData() {
+                const keys = {};
+                KEY_GROUPS.forEach(group => {
+                    keys[group] = { items: ['', '', ''], image: null };
+                    document.querySelectorAll(`.key-input[data-group="${group}"]`).forEach(inp => {
+                        keys[group].items[parseInt(inp.dataset.index)] = inp.value.trim();
+                    });
+                    const img = document.querySelector(`#imgPreview_${group} img`);
+                    keys[group].image = img ? img.dataset.fullSrc || img.src : null;
+                });
+                return keys;
+            }
+
+            function populateKeysData(keys) {
+                if (!keys) return;
+                KEY_GROUPS.forEach(group => {
+                    const data = keys[group];
+                    if (!data) return;
+                    document.querySelectorAll(`.key-input[data-group="${group}"]`).forEach(inp => {
+                        inp.value = data.items[parseInt(inp.dataset.index)] || '';
+                    });
+                    const preview = document.getElementById(`imgPreview_${group}`);
+                    if (data.image) preview.innerHTML =
+                        `<div class="img-wrap"><img src="${escapeHtml(data.image)}" data-full-src="${escapeHtml(data.image)}" alt="预览"><button class="img-del">✕</button></div>`;
+                    else preview.innerHTML = '';
+                    const delBtn = preview.querySelector('.img-del');
+                    if (delBtn) delBtn.addEventListener('click', () => { preview.innerHTML = ''; });
+                });
+            }
+
+            function clearKeysForm() {
+                KEY_GROUPS.forEach(g => { document.getElementById(`imgPreview_${g}`).innerHTML = ''; });
+                document.querySelectorAll('.key-input').forEach(i => i.value = '');
+            }
+
+            // ============ 保存记录（含记账提醒） ============
+            function saveRecord() {
+                const date = document.getElementById('recordDate').value;
+                if (!date) return alert('请选择日期');
+                const sleep = parseFloat(document.getElementById('sleepHours').value) || null;
+                if (sleep !== null && (sleep < 0 || sleep > 24)) return alert('睡眠时长请在0-24之间');
+                const diary = document.getElementById('diaryText').value.trim();
+                const thought = document.getElementById('thoughtText').value.trim();
+                const keys = collectKeysData();
+                const hasKeys = KEY_GROUPS.some(g => keys[g].items.some(i => i !== '') || keys[g].image);
+                if (!diary && !thought && sleep === null && !selectedMood && !hasKeys && currentTags.length === 0)
+                    return alert('至少填写一项内容～');
+
+                let entries = loadEntries();
+                const idx = entries.findIndex(e => e.date === date);
+                const entry = {
+                    date,
+                    sleepHours: sleep,
+                    diary,
+                    thought,
+                    mood: selectedMood,
+                    tags: [...currentTags],
+                    keys,
+                    updatedAt: new Date().toISOString()
+                };
+                if (idx !== -1) entries[idx] = entry;
+                else entries.push(entry);
+                saveEntries(entries);
+                renderList();
+                updateStreak();
+                alert('✅ 保存成功！');
+                // 记账提醒
+                setTimeout(() => {
+                    alert('💡 今天你记账了吗？别忘了记录收支哦！');
+                }, 350);
+                document.getElementById('recordsList').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function clearForm() {
+                document.getElementById('sleepHours').value = '';
+                document.getElementById('diaryText').value = '';
+                document.getElementById('thoughtText').value = '';
+                setMoodUI(null);
+                currentTags = [];
+                renderTags();
+                clearKeysForm();
+                document.getElementById('recordDate').value = formatDate(new Date());
+                document.getElementById('tagInput').value = '';
+            }
+
+            // ============ 渲染历史列表 ============
+            function renderKeysHTML(keys) {
+                if (!keys) return '';
+                let html = '<div style="margin-top:8px;padding:10px;background:#fdf8f2;border-radius:10px;border:1px dashed #d4c5b3;"><strong>🗝️ 内核钥匙</strong>';
+                let hasAny = false;
+                KEY_GROUPS.forEach(g => {
+                    const data = keys[g];
+                    if (!data) return;
+                    const items = (data.items || []).filter(i => i !== '');
+                    if (items.length > 0) { hasAny = true;
+                        html +=
+                        `<div style="font-size:0.8rem;margin:4px 0;">${GROUP_LABELS[g]}：${items.map(i => escapeHtml(i)).join(' / ')}</div>`; }
+                    if (data.image) { hasAny = true;
+                        html +=
+                        `<div style="margin-top:4px;"><img src="${escapeHtml(data.image)}" style="width:50px;height:50px;object-fit:cover;border-radius:6px;border:1px solid #e2d7cc;cursor:pointer;" onclick="event.stopPropagation();window._openImagePreview('${escapeHtml(data.image)}')"></div>`; }
+                });
+                html += '</div>';
+                return hasAny ? html : '';
+            }
+
+            function renderList() {
+                const query = document.getElementById('searchInput').value.trim().toLowerCase();
+                let entries = loadEntries().filter(e => {
+                    if (!query) return true;
+                    const str = [e.diary, e.thought, e.date, ...(e.tags || []),
+                        ...Object.values(e.keys || {}).flatMap(k => k.items || [])
+                    ].join(' ').toLowerCase();
+                    return str.includes(query);
+                }).sort((a, b) => b.date.localeCompare(a.date));
+                const container = document.getElementById('recordsList');
+                const noResult = document.getElementById('noResultMsg');
+                if (!entries.length) {
+                    container.innerHTML = query ? '' :
+                        '<div class="empty-msg">📭 暂无记录，开始写下第一篇日记吧～</div>';
+                    noResult.style.display = query ? 'block' : 'none';
+                    return;
+                }
+                noResult.style.display = 'none';
+                container.innerHTML = entries.map((e, i) => `
+            <div class="record-collapsed" data-idx="${i}">
+              <div><strong>📆 ${escapeHtml(e.date)}</strong> ${e.mood ? `<span class="badge mood-badge">${e.mood}</span>` : ''} ${e.sleepHours ? `<span class="badge">💤${e.sleepHours}h</span>` : ''} ${e.tags?.length ? e.tags.map(t=>`<span class="badge">${escapeHtml(t)}</span>`).join('') : ''}</div>
+              <div class="arrow">▼</div>
+            </div>
+            <div class="record-detail" id="detail_${i}">
+              ${e.diary ? `<p style="font-weight:500;color:#4b3b31;line-height:1.6;">📖 ${escapeHtml(e.diary)}</p>` : ''}
+              ${e.thought ? `<p style="color:#66584d;font-size:0.88rem;background:#ffffffaa;padding:10px;border-radius:10px;margin:8px 0;">💡 ${escapeHtml(e.thought)}</p>` : ''}
+              ${renderKeysHTML(e.keys)}
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+                <button class="btn-sm edit-entry-btn" data-date="${e.date}" style="background:#e9e0d8;color:#785a48;font-size:0.75rem;">✏️ 编辑</button>
+                <button class="btn-sm delete-entry-btn" data-date="${e.date}" style="background:#fde8e8;color:#b04c4e;font-size:0.75rem;">🗑️ 删除</button>
+              </div>
+            </div>`).join('');
+
+                container.querySelectorAll('.record-collapsed').forEach(h => {
+                    h.addEventListener('click', function() {
+                        const idx = this.dataset.idx;
+                        const detail = document.getElementById('detail_' + idx);
+                        const isOpen = detail.classList.contains('open');
+                        container.querySelectorAll('.record-detail.open').forEach(d => d
+                            .classList.remove('open'));
+                        container.querySelectorAll('.record-collapsed.expanded').forEach(h =>
+                            h.classList.remove('expanded'));
+                        if (!isOpen) { detail.classList.add('open');
+                            this.classList.add('expanded'); }
+                    });
+                });
+                container.querySelectorAll('.edit-entry-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) { e.stopPropagation();
+                        loadEntryToForm(this.dataset.date); });
+                });
+                container.querySelectorAll('.delete-entry-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) { e.stopPropagation(); if (confirm(
+                            '确定删除这条记录吗？')) deleteEntry(this.dataset.date); });
+                });
+            }
+
+            function loadEntryToForm(date) {
+                const entry = loadEntries().find(e => e.date === date);
+                if (!entry) return;
+                document.getElementById('recordDate').value = entry.date;
+                document.getElementById('sleepHours').value = entry.sleepHours ?? '';
+                document.getElementById('diaryText').value = entry.diary || '';
+                document.getElementById('thoughtText').value = entry.thought || '';
+                setMoodUI(entry.mood || null);
+                currentTags = [...(entry.tags || [])];
+                renderTags();
+                populateKeysData(entry.keys || null);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            function deleteEntry(date) {
+                let entries = loadEntries().filter(e => e.date !== date);
+                saveEntries(entries);
+                renderList();
+                updateStreak();
+                if (document.getElementById('recordDate').value === date) clearForm();
+            }
+
+            // ============ 睡眠统计 ============
+            function renderSleepStats() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const entries = loadEntries();
+                const monthList = entries.filter(e => {
+                    if (!e.sleepHours && e.sleepHours !== 0) return false;
+                    const [y, m] = e.date.split('-');
+                    return y == year && m == month;
+                }).sort((a, b) => new Date(a.date) - new Date(b.date));
+                const tableContainer = document.getElementById('statTableContainer');
+                const summaryContainer = document.getElementById('statSummaryChips');
+                const moodContainer = document.getElementById('moodStatsContainer');
+                const chartContainer = document.getElementById('sleepChartContainer');
+
+                if (monthList.length === 0) {
+                    tableContainer.innerHTML =
+                        `<p style="text-align:center;color:#948477;padding:20px;">📅 ${year}年${month}月暂无睡眠记录</p>`;
+                    summaryContainer.innerHTML = '';
+                    if (moodContainer) moodContainer.innerHTML = '';
+                    if (chartContainer) chartContainer.innerHTML = '';
+                    return;
+                }
+                const total = monthList.reduce((s, i) => s + i.sleepHours, 0);
+                const avg = (total / monthList.length).toFixed(1);
+                const maxVal = Math.max(...monthList.map(i => i.sleepHours));
+                const minVal = Math.min(...monthList.map(i => i.sleepHours));
+                const goodDays = monthList.filter(i => i.sleepHours >= 7 && i.sleepHours <= 9).length;
+                const lowDays = monthList.filter(i => i.sleepHours < 6).length;
+
+                tableContainer.innerHTML = `
+            <table class="stat-table"><thead><tr><th>日期</th><th>周</th><th>睡眠</th><th>评级</th><th>心情</th><th>备注</th></tr></thead><tbody>
+            ${monthList.map(e=>{
+              const d=new Date(e.date);const wd=['日','一','二','三','四','五','六'][d.getDay()];
+              let rating='',rc='';if(e.sleepHours<6){rating='⚠️不足';rc='color:#c0392b;font-weight:600;'}else if(e.sleepHours<7){rating='⚡偏少';rc='color:#7d8e5a;'}else if(e.sleepHours<=9){rating='✅良好';rc='color:#3a7d5f;font-weight:600;'}else{rating='💤较多';rc='color:#7d8e5a;';}
+              return `<tr><td>${e.date}</td><td>${wd}</td><td style="${rc}">${e.sleepHours}h</td><td>${rating}</td><td>${e.mood||''}</td><td>${escapeHtml(e.diary?e.diary.slice(0,12)+'…':'')}</td></tr>`;
+            }).join('')}</tbody></table>`;
+
+                summaryContainer.innerHTML = `
+            <div class="stat-chip"><div class="val">${avg}h</div><div class="lbl">📊平均</div></div>
+            <div class="stat-chip"><div class="val">${maxVal}h</div><div class="lbl">🔝最高</div></div>
+            <div class="stat-chip"><div class="val">${minVal}h</div><div class="lbl">🔻最低</div></div>
+            <div class="stat-chip"><div class="val">${goodDays}天</div><div class="lbl">✅达标</div></div>
+            <div class="stat-chip"><div class="val">${lowDays}天</div><div class="lbl">⚠️不足</div></div>
+            <div class="stat-chip"><div class="val">${monthList.length}天</div><div class="lbl">📅记录</div></div>`;
+
+                if (chartContainer) {
+                    chartContainer.innerHTML = '<div style="font-size:0.75rem;color:#785a48;margin-bottom:4px;">📊 睡眠柱状图（本月）</div>' +
+                        monthList.map(e => {
+                            const pct = Math.min(100, (e.sleepHours / 10) * 100);
+                            const barColor = e.sleepHours >= 7 && e.sleepHours <= 9 ? '#c8dcc8' : e
+                                .sleepHours < 6 ? '#f5d5d0' : '#e8d5be';
+                            return `<div style="display:flex;align-items:center;gap:6px;font-size:0.65rem;margin:1px 0;"><span style="min-width:42px;color:#8a7b6e;">${e.date.slice(5)}</span><div class="sleep-chart-bar" style="width:${pct}%;background:${barColor};color:#4b3b31;">${e.sleepHours}h</div></div>`;
+                        }).join('');
+                }
+                if (moodContainer) {
+                    const allMoods = monthList.filter(e => e.mood);
+                    if (allMoods.length > 0) {
+                        const moodCount = {};
+                        allMoods.forEach(e => { moodCount[e.mood] = (moodCount[e.mood] || 0) + 1; });
+                        moodContainer.innerHTML =
+                            '<div style="font-size:0.75rem;color:#785a48;margin-top:6px;">😊 本月心情分布：</div><div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+                            Object.entries(moodCount).sort((a, b) => b[1] - a[1]).map(([emoji,
+                                count]) =>
+                                `<span style="background:#fdfaf5;padding:4px 10px;border-radius:20px;font-size:0.75rem;border:1px solid #ece3d8;">${emoji} ${count}天</span>`
+                            ).join('') + '</div>';
+                    } else moodContainer.innerHTML =
+                        '<div style="font-size:0.7rem;color:#a08c7a;margin-top:4px;">本月暂无心情记录</div>';
+                }
+            }
+
+            function toggleStatPanel() {
+                const panel = document.getElementById('statPanel');
+                if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+                panel.style.display = 'block';
+                document.getElementById('statTableContainer').style.display = 'block';
+                document.getElementById('statCalendarContainer').style.display = 'none';
+                document.getElementById('weeklySummaryContainer').innerHTML = '';
+                renderSleepStats();
+                panel.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // ============ 导出/导入 ============
+            function exportTxt() {
+                const entries = loadEntries();
+                if (!entries.length) return alert('暂无记录');
+                let txt = entries.map(e =>
+                    `${e.date} | 心情:${e.mood||'-'} | 睡眠:${e.sleepHours||'-'}h | 日记:${e.diary||''} | 想法:${e.thought||''}`
+                    ).join('\n');
+                const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `黄老爸日记备份_${formatDate(new Date())}.txt`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }
+
+            function exportJson() {
+                const entries = loadEntries();
+                if (!entries.length) return alert('暂无记录');
+                const blob = new Blob([JSON.stringify({ app: '黄老爸的小日常', version: 'v6', exportedAt: new Date()
+                        .toISOString(), totalEntries: entries.length, entries }, null, 2)], { type: 'application/json;charset=utf-8' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `黄老爸日记完整备份_${formatDate(new Date())}.json`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }
+
+            function importJson(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (!data.entries || !Array.isArray(data.entries)) throw new Error('格式错误');
+                        if (!confirm(`即将导入 ${data.entries.length} 条记录。\n相同日期会覆盖，继续吗？`)) return;
+                        let current = loadEntries();
+                        const map = {};
+                        current.forEach(en => { map[en.date] = en; });
+                        data.entries.forEach(en => { if (en.date) map[en.date] = en; });
+                        saveEntries(Object.values(map));
+                        renderList();
+                        updateStreak();
+                        alert(`✅ 成功导入 ${data.entries.length} 条记录！`);
+                    } catch (err) { alert('文件格式不正确'); }
+                };
+                reader.readAsText(file);
+            }
+
+            function randomReview() {
+                const entries = loadEntries();
+                if (!entries.length) return alert('暂无记录');
+                const e = entries[Math.floor(Math.random() * entries.length)];
+                loadEntryToForm(e.date);
+            }
+
+            // ============ 每日一言 ============
+            function showRandomQuote() {
+                const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+                const el = document.getElementById('dailyQuote');
+                el.textContent = `"${q}"`;
+                el.style.display = 'block';
+                el.style.animation = 'none';
+                el.offsetHeight;
+                el.style.animation = 'fadeSlideIn 0.5s ease';
+            }
+
+            // ============ Canvas 飘落花瓣动画 ============
+            function initPetalAnimation() {
+                const canvas = document.getElementById('petalCanvas');
+                const ctx = canvas.getContext('2d');
+                const petalColors = [
+                    '#f2c4b3', '#f5d4c0', '#f8e5d0', '#e8d5e0',
+                    '#f0d8c8', '#fde4cf', '#f9d8c8', '#eed5d0',
+                    '#f6dfd0', '#fce8db', '#f3dcd4', '#fbe9e0'
+                ];
+                const isMobile = window.innerWidth < 600;
+                const petalCount = isMobile ? 10 : 14;
+                let petals = [];
+                let animationId;
+                let lastTime = 0;
+
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+
+                function createPetal(startY = null) {
+                    return {
+                        x: Math.random() * canvas.width,
+                        y: startY !== null ? startY : Math.random() * canvas.height - 40,
+                        size: 6 + Math.random() * 12,
+                        speedY: 0.25 + Math.random() * 0.55,
+                        speedX: (Math.random() - 0.5) * 0.4,
+                        rotation: Math.random() * 360,
+                        rotationSpeed: (Math.random() - 0.5) * 0.8,
+                        color: petalColors[Math.floor(Math.random() * petalColors.length)],
+                        opacity: 0.3 + Math.random() * 0.35,
+                        wobbleAmp: 0.3 + Math.random() * 0.6,
+                        wobbleSpeed: 0.01 + Math.random() * 0.02,
+                        wobbleOffset: Math.random() * Math.PI * 2
+                    };
+                }
+
+                function initPetals() {
+                    petals = [];
+                    for (let i = 0; i < petalCount; i++) {
+                        petals.push(createPetal(-Math.random() * canvas.height));
+                    }
+                }
+
+                function updatePetal(p, dt) {
+                    p.y += p.speedY * dt * 0.06;
+                    p.x += Math.sin(p.wobbleOffset + p.y * p.wobbleSpeed) * p.wobbleAmp + p.speedX * dt * 0.03;
+                    p.rotation += p.rotationSpeed * dt * 0.03;
+                    if (p.x < -30) p.x = canvas.width + 20;
+                    if (p.x > canvas.width + 30) p.x = -20;
+                    if (p.y > canvas.height + 40) {
+                        p.y = -40;
+                        p.x = Math.random() * canvas.width;
+                    }
+                }
+
+                function drawPetal(p) {
+                    ctx.save();
+                    ctx.globalAlpha = p.opacity;
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rotation * Math.PI / 180);
+                    const w = p.size;
+                    const h = p.size * 0.55;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, w, h, 0, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+                    // 添加微小的光泽
+                    ctx.beginPath();
+                    ctx.ellipse(-w * 0.2, -h * 0.15, w * 0.35, h * 0.25, 0.3, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                function animate(timestamp) {
+                    if (!lastTime) lastTime = timestamp;
+                    let dt = timestamp - lastTime;
+                    if (dt > 100) dt = 16;
+                    lastTime = timestamp;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    petals.forEach(p => {
+                        updatePetal(p, dt);
+                        drawPetal(p);
+                    });
+                    animationId = requestAnimationFrame(animate);
+                }
+
+                function handleVisibility() {
+                    if (document.hidden) {
+                        if (animationId) { cancelAnimationFrame(animationId);
+                            animationId = null;
+                            lastTime = 0; }
+                    } else {
+                        if (!animationId) {
+                            lastTime = 0;
+                            animationId = requestAnimationFrame(animate);
+                        }
+                    }
+                }
+
+                resizeCanvas();
+                initPetals();
+                animationId = requestAnimationFrame(animate);
+                window.addEventListener('resize', () => { resizeCanvas();
+                    initPetals(); });
+                document.addEventListener('visibilitychange', handleVisibility);
+            }
+
+            // ============ 事件绑定 ============
+            function bindEvents() {
+                document.getElementById('saveBtn').addEventListener('click', saveRecord);
+                document.getElementById('clearFormBtn').addEventListener('click', () => { if (confirm(
+                        '确定清空表单吗？未保存的内容将丢失。')) clearForm(); });
+                document.getElementById('statBtn').addEventListener('click', toggleStatPanel);
+                document.getElementById('closeStatPanel').addEventListener('click', () => { document.getElementById(
+                        'statPanel').style.display = 'none'; });
+                document.getElementById('exportBtn').addEventListener('click', exportTxt);
+                document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
+                document.getElementById('importJsonBtn').addEventListener('click', () => { document.getElementById(
+                        'importJsonInput').click(); });
+                document.getElementById('importJsonInput').addEventListener('change', function() { if (this.files[
+                        0]) importJson(this.files[0]);
+                    this.value = ''; });
+                document.getElementById('randomReviewBtn').addEventListener('click', randomReview);
+                document.getElementById('randomQuoteBtn').addEventListener('click', showRandomQuote);
+                document.getElementById('searchInput').addEventListener('input', renderList);
+                document.getElementById('keysHeader').addEventListener('click', function() {
+                    this.classList.toggle('open');
+                    document.getElementById('keysBody').classList.toggle('open');
+                });
+                document.getElementById('showCalendarView').addEventListener('click', () => {
+                    document.getElementById('statTableContainer').style.display = 'none';
+                    document.getElementById('statCalendarContainer').style.display = 'block';
+                    document.getElementById('sleepChartContainer').innerHTML = '';
+                    document.getElementById('weeklySummaryContainer').innerHTML = '';
+                    const cal = document.getElementById('statCalendarContainer');
+                    const now = new Date();
+                    const y = now.getFullYear();
+                    const m = now.getMonth();
+                    const entries = loadEntries();
+                    const map = {};
+                    entries.forEach(e => { map[e.date] = e; });
+                    const firstDay = new Date(y, m, 1);
+                    const lastDay = new Date(y, m + 1, 0);
+                    const startDow = firstDay.getDay();
+                    const totalDays = lastDay.getDate();
+                    let calHTML =
+                        '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.7rem;"><thead><tr>';
+                    ['日', '一', '二', '三', '四', '五', '六'].forEach(d => calHTML +=
+                        `<th style="padding:4px;color:#8a7b6e;">${d}</th>`);
+                    calHTML += '</tr></thead><tbody><tr>';
+                    let dc = 0;
+                    for (let i = 0; i < startDow; i++) { calHTML +=
+                        '<td style="padding:4px;text-align:center;"></td>';
+                        dc++; }
+                    const todayStr = formatDate(now);
+                    for (let d = 1; d <= totalDays; d++) {
+                        if (dc % 7 === 0 && dc > 0) calHTML += '</tr><tr>';
+                        const ds =
+                            `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                        const entry = map[ds];
+                        let bg = '#f3ede6',
+                            cursor = 'default',
+                            title = '无记录';
+                        if (entry) {
+                            cursor = 'pointer';
+                            if (entry.sleepHours && entry.sleepHours >= 7 && entry.sleepHours <= 9) { bg =
+                                    '#c8dcc8';
+                                title = `${ds} · 睡眠${entry.sleepHours}h ✅良好`; } else if (entry
+                                .sleepHours && entry.sleepHours < 6) { bg = '#f5d5d0';
+                                title = `${ds} · 睡眠${entry.sleepHours}h ⚠️不足`; } else { bg =
+                                    '#e8d5be';
+                                title = `${ds} · 有记录`; }
+                            if (entry.mood) title += ` · 心情${entry.mood}`;
+                        }
+                        const todayStyle = ds === todayStr ?
+                            'box-shadow:0 0 0 2px #a67c52;font-weight:700;' : '';
+                        calHTML +=
+                            `<td style="padding:4px;text-align:center;border-radius:6px;background:${bg};cursor:${cursor};${todayStyle}" title="${title}" data-date="${ds}">${d}</td>`;
+                        dc++;
+                    }
+                    while (dc % 7 !== 0) { calHTML +=
+                        '<td style="padding:4px;text-align:center;"></td>';
+                        dc++; }
+                    calHTML += '</tr></tbody></table></div>';
+                    calHTML +=
+                        '<div style="font-size:0.65rem;color:#8a7b6e;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;"><span>🟩 睡眠良好</span><span>🟫 有记录</span><span>🟥 睡眠不足</span><span>⬜ 无记录</span><span>🔲 加粗=今天</span></div>';
+                    cal.innerHTML = calHTML;
+                    cal.querySelectorAll('td[data-date]').forEach(td => {
+                        td.addEventListener('click', function() {
+                            if (map[this.dataset.date]) {
+                                loadEntryToForm(this.dataset.date);
+                                document.getElementById('statPanel').style.display =
+                                    'none';
+                            }
+                        });
+                    });
+                });
+                document.getElementById('showTableView').addEventListener('click', () => {
+                    document.getElementById('statCalendarContainer').style.display = 'none';
+                    document.getElementById('statTableContainer').style.display = 'block';
+                    document.getElementById('weeklySummaryContainer').innerHTML = '';
+                    renderSleepStats();
+                });
+                document.getElementById('showWeeklySummaryBtn').addEventListener('click', () => {
+                    const entries = loadEntries();
+                    const now = new Date();
+                    const weekAgo = new Date(now);
+                    weekAgo.setDate(weekAgo.getDate() - 6);
+                    const weekList = entries.filter(e => new Date(e.date) >= weekAgo).sort((a, b) =>
+                        new Date(a.date) - new Date(b.date));
+                    const container = document.getElementById('weeklySummaryContainer');
+                    if (weekList.length === 0) { container.innerHTML =
+                            '<p style="color:#a08c7a;font-size:0.8rem;">📝 近7天暂无记录</p>'; return; }
+                    const avgSleep = weekList.filter(e => e.sleepHours).reduce((s, e) => s + e
+                        .sleepHours, 0) / (weekList.filter(e => e.sleepHours).length || 1);
+                    const moods = weekList.filter(e => e.mood).map(e => e.mood);
+                    const moodStr = moods.length > 0 ? moods.join(' ') : '无记录';
+                    container.innerHTML = `
+              <div class="weekly-summary" style="background:#f7f2ec;border-radius:14px;padding:14px;">
+                <strong style="color:#785a48;">📝 近7天周报</strong>
+                <p style="font-size:0.8rem;margin:4px 0;">📅 记录天数：<strong>${weekList.length}</strong> 天</p>
+                <p style="font-size:0.8rem;margin:4px 0;">😴 平均睡眠：<strong>${avgSleep.toFixed(1)}h</strong></p>
+                <p style="font-size:0.8rem;margin:4px 0;">😊 心情记录：${moodStr}</p>
+              </div>`;
+                });
+            }
+
+            // ============ 初始化 ============
+            function init() {
+                document.getElementById('recordDate').value = formatDate(new Date());
+                initMood();
+                buildKeysHTML();
+                renderList();
+                updateStreak();
+                bindEvents();
+                document.getElementById('keysBody').classList.remove('open');
+                document.getElementById('keysHeader').classList.remove('open');
+                // 启动飘落花瓣动画
+                initPetalAnimation();
+                // 全局图片预览
+                window._openImagePreview = function(src) {
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText =
+                        'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(60,50,40,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;cursor:pointer;';
+                    overlay.innerHTML =
+                        `<img src="${src}" style="max-width:90%;max-height:85vh;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.3);">`;
+                    overlay.addEventListener('click', () => overlay.remove());
+                    document.body.appendChild(overlay);
+                };
+            }
+            init();
+        })();
+    </script>
+</body>
+</html>
